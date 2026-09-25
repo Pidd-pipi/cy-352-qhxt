@@ -1,27 +1,109 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { fetchOverview } from "./api/client";
+import { ElMessage } from "element-plus";
+import {
+  checkHealth,
+  closeTable,
+  fetchGames,
+  fetchOpenTables,
+  fetchRecommendation,
+  openTable,
+} from "./api/client";
 import { APP_CODE, APP_NAME } from "./constants/app";
 import { REQUEST_MESSAGES } from "./constants/messages";
-import { createFallbackOverview } from "./state/dashboard";
-import type { OverviewResponse } from "./types";
-import FeatureStrip from "./components/FeatureStrip.vue";
-import MetricGrid from "./components/MetricGrid.vue";
-import OperationsTable from "./components/OperationsTable.vue";
+import type {
+  CandidateItem,
+  GameItem,
+  RecommendationResult,
+  RecommendInput,
+  TableSessionItem,
+} from "./types";
+import PickerPanel from "./components/PickerPanel.vue";
+import OpenTablesPanel from "./components/OpenTablesPanel.vue";
+import GameAdminPanel from "./components/GameAdminPanel.vue";
 
-const overview = ref<OverviewResponse>(createFallbackOverview());
-const notice = ref(REQUEST_MESSAGES.overviewFallback);
+const notice = ref(REQUEST_MESSAGES.backendOffline);
+const backendOnline = ref(false);
 
-function goHealth() {
-  window.location.href = REQUEST_MESSAGES.healthPath;
+const games = ref<GameItem[]>([]);
+const recommendation = ref<RecommendationResult | null>(null);
+const sessions = ref<TableSessionItem[]>([]);
+
+const searching = ref(false);
+const openingGameId = ref<string | null>(null);
+const closingId = ref<string | null>(null);
+
+let lastInput: RecommendInput = { partySize: 4, availableMinutes: 90, preferredDifficulty: null };
+
+async function refreshGames() {
+  games.value = (await fetchGames()).games;
+}
+
+async function refreshSessions() {
+  sessions.value = (await fetchOpenTables()).sessions;
+}
+
+async function runRecommendation(input: RecommendInput) {
+  lastInput = input;
+  searching.value = true;
+  try {
+    recommendation.value = await fetchRecommendation(input);
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : REQUEST_MESSAGES.recommendFailed);
+  } finally {
+    searching.value = false;
+  }
+}
+
+/** 开桌/结桌/改库存后统一刷新：候选排序、在库数量、开桌列表都依赖最新库存 */
+async function refreshAll() {
+  await Promise.all([refreshGames(), refreshSessions(), runRecommendation(lastInput)]);
+}
+
+async function handleOpenTable(candidate: CandidateItem) {
+  openingGameId.value = candidate.game.id;
+  try {
+    await openTable(candidate.game.id, lastInput.partySize);
+    ElMessage.success(`「${candidate.game.name}」${REQUEST_MESSAGES.openTableSuccess}`);
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "开桌失败");
+  } finally {
+    openingGameId.value = null;
+    await refreshAll();
+  }
+}
+
+async function handleCloseTable(session: TableSessionItem) {
+  closingId.value = session.id;
+  try {
+    const result = await closeTable(session.id);
+    ElMessage[result.alreadyClosed ? "info" : "success"](
+      result.alreadyClosed
+        ? `「${session.gameName}」${REQUEST_MESSAGES.closeTableRepeated}`
+        : `「${session.gameName}」${REQUEST_MESSAGES.closeTableSuccess}`,
+    );
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "结桌失败");
+  } finally {
+    closingId.value = null;
+    await refreshAll();
+  }
+}
+
+async function handleLibraryChanged() {
+  await refreshAll();
 }
 
 onMounted(async () => {
   try {
-    overview.value = await fetchOverview();
-    notice.value = "后端服务已联通，当前展示实时接口数据。";
+    await checkHealth();
+    backendOnline.value = true;
+    notice.value = REQUEST_MESSAGES.backendOnline;
+    await refreshGames();
+    await refreshSessions();
+    await runRecommendation(lastInput);
   } catch {
-    notice.value = REQUEST_MESSAGES.overviewFallback;
+    notice.value = REQUEST_MESSAGES.backendOffline;
   }
 });
 </script>
@@ -31,24 +113,25 @@ onMounted(async () => {
     <header class="topbar">
       <div>
         <span class="brand-code">{{ APP_CODE }}</span>
-        <h1 class="brand-title">{{ APP_NAME }}</h1>
+        <h1 class="brand-title">{{ APP_NAME }} · 现场选游</h1>
       </div>
-      <el-button type="primary" @click="goHealth">API Health</el-button>
+      <el-tag :type="backendOnline ? 'success' : 'danger'" effect="dark">{{ notice }}</el-tag>
     </header>
     <section class="workspace">
-      <div class="lead-grid">
-        <article class="hero-panel">
-          <span class="pill">{{ notice }}</span>
-          <h2>{{ overview.appName }}</h2>
-          <p>{{ overview.description }}</p>
-        </article>
-        <MetricGrid :items="overview.kpis" />
-      </div>
-      <FeatureStrip :items="overview.features" />
-      <section class="work-panel">
-        <h2>运营任务流</h2>
-        <OperationsTable :records="overview.records" />
-      </section>
+      <PickerPanel
+        :result="recommendation"
+        :searching="searching"
+        :opening-game-id="openingGameId"
+        @search="runRecommendation"
+        @open-table="handleOpenTable"
+      />
+      <OpenTablesPanel
+        :sessions="sessions"
+        :closing-id="closingId"
+        @close-table="handleCloseTable"
+        @refresh="refreshSessions"
+      />
+      <GameAdminPanel :games="games" @changed="handleLibraryChanged" />
     </section>
   </main>
 </template>

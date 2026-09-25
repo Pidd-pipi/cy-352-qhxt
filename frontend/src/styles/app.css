@@ -151,6 +151,130 @@ body {
   font-weight: 700;
 }
 
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.panel-head h2 {
+  margin: 0;
+}
+
+.panel-head p {
+  flex-basis: 100%;
+  margin: 4px 0 0;
+  color: color-mix(in srgb, #19212e 68%, #3268b8 32%);
+}
+
+.picker-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  align-items: flex-end;
+  padding: 16px 18px 4px;
+  border-radius: 8px;
+  background: color-mix(in srgb, #3268b8 7%, transparent);
+  margin-bottom: 22px;
+}
+
+.section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 22px 0 14px;
+}
+
+.section-title small {
+  font-weight: 400;
+  color: color-mix(in srgb, #19212e 60%, transparent);
+}
+
+.candidate-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+.candidate-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, #19212e 13%, transparent);
+  border-radius: 8px;
+  padding: 16px;
+  background: color-mix(in srgb, #f4f7fb 88%, white 12%);
+}
+
+.candidate-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.candidate-head .rank {
+  font-weight: 800;
+  color: #3268b8;
+}
+
+.candidate-head strong {
+  font-size: 17px;
+}
+
+.candidate-meta {
+  margin: 0;
+  color: color-mix(in srgb, #19212e 70%, transparent);
+}
+
+.basis-list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  color: color-mix(in srgb, #19212e 78%, #3268b8 22%);
+}
+
+.basis-list li.muted {
+  color: #cf5c36;
+}
+
+.candidate-foot {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.excluded-title {
+  color: color-mix(in srgb, #19212e 82%, #cf5c36 18%);
+}
+
+.reason-tag {
+  margin: 2px 6px 2px 0;
+  white-space: normal;
+  height: auto;
+  line-height: 1.5;
+  padding: 4px 8px;
+}
+
+.excluded-tag {
+  margin-left: 8px;
+}
+
+.range-sep {
+  margin: 0 10px;
+  color: color-mix(in srgb, #19212e 60%, transparent);
+}
+
+.inline-field {
+  display: inline-block;
+  margin-bottom: 0;
+}
+
 @media (max-width: 860px) {
   .topbar {
     align-items: flex-start;
