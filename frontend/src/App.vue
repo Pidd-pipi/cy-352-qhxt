@@ -1,54 +1,62 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
-import { fetchOverview } from "./api/client";
+import { RouterLink, RouterView } from "vue-router";
 import { APP_CODE, APP_NAME } from "./constants/app";
-import { REQUEST_MESSAGES } from "./constants/messages";
-import { createFallbackOverview } from "./state/dashboard";
-import type { OverviewResponse } from "./types";
-import FeatureStrip from "./components/FeatureStrip.vue";
-import MetricGrid from "./components/MetricGrid.vue";
-import OperationsTable from "./components/OperationsTable.vue";
-
-const overview = ref<OverviewResponse>(createFallbackOverview());
-const notice = ref(REQUEST_MESSAGES.overviewFallback);
-
-function goHealth() {
-  window.location.href = REQUEST_MESSAGES.healthPath;
-}
-
-onMounted(async () => {
-  try {
-    overview.value = await fetchOverview();
-    notice.value = "后端服务已联通，当前展示实时接口数据。";
-  } catch {
-    notice.value = REQUEST_MESSAGES.overviewFallback;
-  }
-});
+import { navItems } from "./routes";
 </script>
 
 <template>
   <main class="app-shell">
     <header class="topbar">
-      <div>
+      <div class="brand">
         <span class="brand-code">{{ APP_CODE }}</span>
         <h1 class="brand-title">{{ APP_NAME }}</h1>
       </div>
-      <el-button type="primary" @click="goHealth">API Health</el-button>
+      <nav class="nav">
+        <RouterLink v-for="item in navItems" :key="item.path" :to="item.path" class="nav-link">
+          {{ item.label }}
+        </RouterLink>
+      </nav>
     </header>
     <section class="workspace">
-      <div class="lead-grid">
-        <article class="hero-panel">
-          <span class="pill">{{ notice }}</span>
-          <h2>{{ overview.appName }}</h2>
-          <p>{{ overview.description }}</p>
-        </article>
-        <MetricGrid :items="overview.kpis" />
-      </div>
-      <FeatureStrip :items="overview.features" />
-      <section class="work-panel">
-        <h2>运营任务流</h2>
-        <OperationsTable :records="overview.records" />
-      </section>
+      <RouterView />
     </section>
   </main>
 </template>
+
+<style scoped>
+.brand {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.nav-link {
+  padding: 8px 16px;
+  border-radius: 999px;
+  color: #19212e;
+  text-decoration: none;
+  font-weight: 700;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.nav-link:hover {
+  background: color-mix(in srgb, #3268b8 12%, white);
+}
+
+.nav-link.router-link-active {
+  background: #3268b8;
+  color: #fff;
+}
+
+@media (max-width: 860px) {
+  .nav {
+    width: 100%;
+  }
+}
+</style>
